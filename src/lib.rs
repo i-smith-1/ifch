@@ -78,6 +78,41 @@ pub fn div_y(annual_dividends_per_share: f64, share_price: f64) -> f64 {
     annual_dividends_per_share / share_price
 }
 
+// FCFF
+
+pub fn fcff_ni(
+    net_income: f64,
+    non_cash_charges: f64,
+    interest: f64,
+    tax_rate: f64,
+    capex: f64,
+    change_in_working_capital: f64,
+) -> f64 {
+    net_income
+        + non_cash_charges
+        + (interest * (1.0 - tax_rate))
+        - capex
+        - change_in_working_capital
+}
+
+pub fn fcff_cfo(cfo: f64, interest_expense: f64, tax_rate: f64, capex: f64) -> f64 {
+    let interest_after_tax = interest_expense * (1.0 - tax_rate);
+    let fcff = cfo + interest_after_tax - capex;
+    fcff
+}
+
+pub fn fcff_ebit(ebit: f64, tax_rate: f64, depreciation: f64, capex: f64, change_in_working_capital: f64) -> f64 {
+    let nopat = ebit * (1.0 - tax_rate);
+    let fcff = nopat + depreciation - capex - change_in_working_capital;
+    fcff
+}
+
+pub fn fcff_ebitda(ebitda: f64, tax_rate: f64, depreciation: f64, capex: f64, change_in_working_capital: f64) -> f64 {
+    let fcff = (ebitda * (1.0 - tax_rate)) + (depreciation * (1.0 - tax_rate)) - capex - change_in_working_capital;
+    fcff
+}
+
+
 // TMV
 
 // assumes that the first outflow is at t=0
@@ -117,6 +152,41 @@ pub fn xirr(cashflows: Vec<(f64, &str)>) -> f64 {
 
     panic!("IRR did not converge");
 }
+
+// Valuation Models
+
+pub fn ggm_p1(cashflow_0: f64, required_rate_of_return: f64, growth_rate: f64) -> Option<f64> {
+    if required_rate_of_return <= growth_rate {
+        // Return None if the required rate of return is not greater than the growth rate to avoid division by zero or negative denominator
+        return None;
+    }
+
+    let value = (cashflow_0 * (1.0 + growth_rate)) / (required_rate_of_return - growth_rate);
+    Some(value)
+}
+
+
+pub fn ggm_pn(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64, growth_rate_2: f64, periods: u32) -> Option<f64> {
+    if required_rate_of_return <= growth_rate_2 {
+        // Return None if the required rate of return is not greater than the growth rate to avoid division by zero or negative denominator
+        return None;
+    }
+
+    let mut pv_cashflow = 0.0;
+    for t in 1..=periods {
+        let cashflow_t = cashflow_0 * (1.0 + growth_rate_1).powi(t as i32);
+        pv_cashflow += cashflow_t / (1.0 + required_rate_of_return).powi(t as i32);
+    }
+
+    // Calculate the terminal value at the end of the period
+    let terminal_cashflow = cashflow_0 * (1.0 + growth_rate_1).powi((periods + 1) as i32);
+    let terminal_value = terminal_cashflow / (required_rate_of_return - growth_rate_2);
+    let pv_terminal_value = terminal_value / (1.0 + required_rate_of_return).powi(periods as i32);
+
+    Some(pv_cashflow + pv_terminal_value)
+}
+
+
 
 // BSM functions
 
@@ -228,6 +298,5 @@ mod tests {
         assert!((nd2 - expected_nd2).abs() < tolerance, "N(d2) mismatch");
     }
 }
-
 
 
