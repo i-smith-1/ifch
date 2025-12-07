@@ -2,6 +2,8 @@ use chrono::{NaiveDate};
 use std::f64::consts::E;
 use statrs::distribution::{Normal, ContinuousCDF};
 
+//ggm_p1 tests fail right now, fix
+// ratios
 
 // liquidity
 pub fn current_r(current_assets: f64, current_liabilities: f64) -> f64 {
@@ -10,6 +12,10 @@ pub fn current_r(current_assets: f64, current_liabilities: f64) -> f64 {
 
 pub fn quick_r(current_assets: f64, inventory: f64, current_liabilities: f64) -> f64 {
     (current_assets - inventory) / current_liabilities
+}
+
+pub fn acid_r(cash: f64, inventory: f64, accounts_recievable: f64, current_liabilities: f64) -> f64 {
+    (cash + inventory + accounts_recievable) / current_liabilities
 }
 
 pub fn cash_r(cash_and_equivalents: f64, current_liabilities: f64) -> f64 {
@@ -80,38 +86,46 @@ pub fn div_y(annual_dividends_per_share: f64, share_price: f64) -> f64 {
 
 // FCFF
 
-pub fn fcff_ni(
-    net_income: f64,
-    non_cash_charges: f64,
-    interest: f64,
-    tax_rate: f64,
-    capex: f64,
-    change_in_working_capital: f64,
-) -> f64 {
-    net_income
-        + non_cash_charges
-        + (interest * (1.0 - tax_rate))
-        - capex
-        - change_in_working_capital
+pub fn fcff_ni(net_income: f64, non_cash_charges: f64, interest: f64, tax_rate: f64, capex: f64, change_in_working_capital: f64,) -> f64 {
+    net_income + non_cash_charges + (interest * (1.0 - tax_rate)) - capex - change_in_working_capital
 }
 
 pub fn fcff_cfo(cfo: f64, interest_expense: f64, tax_rate: f64, capex: f64) -> f64 {
-    let interest_after_tax = interest_expense * (1.0 - tax_rate);
-    let fcff = cfo + interest_after_tax - capex;
-    fcff
+    cfo + interest_expense * (1.0 - tax_rate) - capex
 }
 
 pub fn fcff_ebit(ebit: f64, tax_rate: f64, depreciation: f64, capex: f64, change_in_working_capital: f64) -> f64 {
-    let nopat = ebit * (1.0 - tax_rate);
-    let fcff = nopat + depreciation - capex - change_in_working_capital;
-    fcff
+    ebit * (1.0 - tax_rate) + depreciation - capex - change_in_working_capital
 }
 
 pub fn fcff_ebitda(ebitda: f64, tax_rate: f64, depreciation: f64, capex: f64, change_in_working_capital: f64) -> f64 {
-    let fcff = (ebitda * (1.0 - tax_rate)) + (depreciation * (1.0 - tax_rate)) - capex - change_in_working_capital;
-    fcff
+     (ebitda * (1.0 - tax_rate)) + (depreciation * (1.0 - tax_rate)) - capex - change_in_working_capital
 }
 
+// WACC
+pub fn wacc_coe(coe: f64, we: f64, tax_rate: f64, cod: f64, wd: f64, cop: f64, wp: f64) -> f64 {
+    (coe * we) + (cop * wp) + ((1.0 - tax_rate) * cod * wd) 
+}
+
+pub fn coe(rfr: f64, equity_beta: f64, mrp: f64) -> f64 {
+    rfr + (equity_beta * mrp)
+}
+
+pub fn wacc_beta(equity_beta: f64, rfr: f64, mrp: f64, we: f64, tax_rate: f64, cod: f64, wd: f64, cop: f64, wp: f64) -> f64 {
+    ((rfr + (equity_beta * mrp)) * we) + (cop * wp) + ((1.0 - tax_rate) * cod * wd) 
+}
+
+pub fn mrp(equity_market_return: f64, rfr: f64) -> f64 {
+    equity_market_return - rfr
+}
+
+pub fn equity_beta(equity: f64, debt: f64, asset_beta: f64, tax_rate: f64) -> f64 {
+    asset_beta * ( 1.0 + ((debt / equity) * ( 1.0 - tax_rate)))
+}
+
+pub fn asset_beta(equity: f64, debt: f64, equity_beta: f64, tax_rate: f64) -> f64 {
+    equity_beta / ( 1.0 + ((debt / equity) * ( 1.0 - tax_rate)))
+}
 
 // TMV
 
@@ -154,6 +168,7 @@ pub fn xirr(cashflows: Vec<(f64, &str)>) -> f64 {
 }
 
 // Valuation Models
+// add tests for all of these
 
 pub fn ggm_p1(cashflow_0: f64, required_rate_of_return: f64, growth_rate: f64) -> Option<f64> {
     if required_rate_of_return <= growth_rate {
@@ -166,7 +181,7 @@ pub fn ggm_p1(cashflow_0: f64, required_rate_of_return: f64, growth_rate: f64) -
 }
 
 
-pub fn ggm_pn(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64, growth_rate_2: f64, periods: u32) -> Option<f64> {
+pub fn ggm_p2(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64, growth_rate_2: f64, periods: u32) -> Option<f64> {
     if required_rate_of_return <= growth_rate_2 {
         // Return None if the required rate of return is not greater than the growth rate to avoid division by zero or negative denominator
         return None;
@@ -196,6 +211,8 @@ pub fn calc_nd(d: f64) -> f64 {
     normal.cdf(d)
 }
 
+// add complex that gives all the greeks too
+// also add binary tree model
 // Black-Scholes-Merton function
 pub fn bsm(
     s: f64,       // Current stock price
@@ -270,6 +287,31 @@ mod tests {
         // Assert that the calculated IRR is close to the expected value
         assert!((calculated_irr - expected_irr).abs() < 0.001, "IRR calculation is incorrect");
     }
+
+    #[test]
+    fn test_ggm_p1_basic() {
+        let result = ggm_p1(100.0, 0.1, 0.05);
+        assert_eq!(result, Some(2200.0));
+    }
+
+    #[test]
+    fn test_ggm_p1_zero_growth() {
+        let result = ggm_p1(100.0, 0.1, 0.0);
+        assert_eq!(result, Some(1100.0));
+    }
+
+    #[test]
+    fn test_ggm_p1_high_growth() {
+        let result = ggm_p1(100.0, 0.05, 0.1);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_ggm_p1_negative_growth() {
+        let result = ggm_p1(100.0, 0.1, -0.05);
+        assert_eq!(result, Some(733.333));
+    }
+
     #[test]
     fn test_black_scholes() {
         // Define test parameters
