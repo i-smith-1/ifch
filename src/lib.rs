@@ -3,6 +3,7 @@ use std::f64::consts::E;
 use statrs::distribution::{Normal, ContinuousCDF};
 
 // adding detailed BSM output with all greeks soon
+// adding binomial tree model soon
 
 // Ratios
 
