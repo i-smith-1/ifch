@@ -194,7 +194,7 @@ pub fn ggm_p2(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64,
     }
 
     // Calculate the terminal value at the end of the period
-    let terminal_cashflow = cashflow_0 * (1.0 + growth_rate_1).powi((periods + 1) as i32);
+    let terminal_cashflow = cashflow_0 * (1.0 + growth_rate_1).powi((periods) as i32) * (1.0 + growth_rate_2);
     let terminal_value = terminal_cashflow / (required_rate_of_return - growth_rate_2);
     let pv_terminal_value = terminal_value / (1.0 + required_rate_of_return).powi(periods as i32);
 
@@ -291,13 +291,13 @@ mod tests {
     #[test]
     fn test_ggm_p1_basic() {
         let result = ggm_p1(100.0, 0.1, 0.05);
-        assert_eq!(result, Some(2200.0));
+        assert_eq!(result, Some(2100.0));
     }
 
     #[test]
     fn test_ggm_p1_zero_growth() {
         let result = ggm_p1(100.0, 0.1, 0.0);
-        assert_eq!(result, Some(1100.0));
+        assert_eq!(result, Some(1000.0));
     }
 
     #[test]
@@ -309,7 +309,46 @@ mod tests {
     #[test]
     fn test_ggm_p1_negative_growth() {
         let result = ggm_p1(100.0, 0.1, -0.05);
-        assert_eq!(result, Some(733.333));
+        assert_eq!(result, Some(633.3333333333333));
+    }
+
+    #[test]
+    fn test_ggm_p2_basic() {
+        let cashflow_0 = 100.0;
+        let required_rate_of_return = 0.1;
+        let growth_rate_1 = 0.05;
+        let growth_rate_2 = 0.03;
+        let periods = 5;
+        let result = ggm_p2(cashflow_0, required_rate_of_return, growth_rate_1, growth_rate_2, periods);
+        assert!(result.is_some());
+        let expected_value = 1601.8757; // Replace with the expected value calculated manually or using a reliable source
+        assert!((result.unwrap() - expected_value).abs() < 1.0);
+    }
+
+
+    #[test]
+    fn test_ggm_p2_required_rate_not_greater_than_growth_rate_2() {
+        let cashflow_0 = 100.0;
+        let required_rate_of_return = 0.02;
+        let growth_rate_1 = 0.05;
+        let growth_rate_2 = 0.03;
+        let periods = 5;
+        let result = ggm_p2(cashflow_0, required_rate_of_return, growth_rate_1, growth_rate_2, periods);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_ggm_p2_zero_periods() {
+        let cashflow_0 = 100.0;
+        let required_rate_of_return = 0.1;
+        let growth_rate_1 = 0.05;
+        let growth_rate_2 = 0.03;
+        let periods = 0;
+        let result = ggm_p2(cashflow_0, required_rate_of_return, growth_rate_1, growth_rate_2, periods);
+        assert!(result.is_some());
+        let terminal_value = (cashflow_0 * (1.0 + growth_rate_1).powi((periods) as i32) * (1.0 + growth_rate_2)) / (required_rate_of_return - growth_rate_2);
+        let expected_value = terminal_value / (1.0 + required_rate_of_return).powi(periods as i32);
+        assert!((result.unwrap() - expected_value).abs() < 1.0);
     }
 
     #[test]
