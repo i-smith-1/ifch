@@ -1,0 +1,12 @@
+[package]
+name = "ifch"
+version = "0.1.0"
+edition = "2024"
+authors = ["Iain Smith <i.smith.code@proton.me>"]
+description = "A small library of financial calculations to make building financial models easier"
+license = "MIT"
+repository = "https://github.com/i-smith-1/ifch"
+
+[dependencies]
+chrono = "0.4"
+statrs = "0.15.0"
