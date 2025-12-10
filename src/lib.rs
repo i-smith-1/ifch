@@ -2,10 +2,11 @@ use chrono::{NaiveDate};
 use std::f64::consts::E;
 use statrs::distribution::{Normal, ContinuousCDF};
 
-//ggm_p1 tests fail right now, fix
-// ratios
+// adding detailed BSM output with all greeks soon
 
-// liquidity
+// Ratios
+
+// Ratios - Liquidity
 pub fn current_r(current_assets: f64, current_liabilities: f64) -> f64 {
     current_assets / current_liabilities
 }
@@ -22,7 +23,7 @@ pub fn cash_r(cash_and_equivalents: f64, current_liabilities: f64) -> f64 {
     cash_and_equivalents / current_liabilities
 }
 
-// profitability
+// Ratios - Profitability
 pub fn gross_m(gross_profit: f64, revenue: f64) -> f64 {
     gross_profit / revenue
 }
@@ -44,7 +45,7 @@ pub fn r_o_e(net_income: f64, shareholders_equity: f64) -> f64 {
 }
 
 
-// leverage 
+// Ratios - Leverage 
 pub fn d_t_e(total_debt: f64, shareholders_equity: f64) -> f64 {
     total_debt / shareholders_equity
 }
@@ -57,7 +58,7 @@ pub fn ebit_i_c(ebit: f64, interest_expense: f64) -> f64 {
     ebit / interest_expense
 }
 
-// activity 
+// Ratios - Activity 
 pub fn inv_t(cost_of_goods_sold: f64, average_inventory: f64) -> f64 {
     cost_of_goods_sold / average_inventory
 }
@@ -71,7 +72,7 @@ pub fn a_t(revenue: f64, total_assets: f64) -> f64 {
 }
 
 
-// valuation
+// Ratios - Valuation
 pub fn p_t_e(share_price: f64, earnings_per_share: f64) -> f64 {
     share_price / earnings_per_share
 }
@@ -84,7 +85,10 @@ pub fn div_y(annual_dividends_per_share: f64, share_price: f64) -> f64 {
     annual_dividends_per_share / share_price
 }
 
-// FCFF
+
+// Build Ups
+
+// Build Up - FCFF
 
 pub fn fcff_ni(net_income: f64, non_cash_charges: f64, interest: f64, tax_rate: f64, capex: f64, change_in_working_capital: f64,) -> f64 {
     net_income + non_cash_charges + (interest * (1.0 - tax_rate)) - capex - change_in_working_capital
@@ -102,7 +106,7 @@ pub fn fcff_ebitda(ebitda: f64, tax_rate: f64, depreciation: f64, capex: f64, ch
      (ebitda * (1.0 - tax_rate)) + (depreciation * (1.0 - tax_rate)) - capex - change_in_working_capital
 }
 
-// WACC
+// Build Up - WACC
 pub fn wacc_coe(coe: f64, we: f64, tax_rate: f64, cod: f64, wd: f64, cop: f64, wp: f64) -> f64 {
     (coe * we) + (cop * wp) + ((1.0 - tax_rate) * cod * wd) 
 }
@@ -127,8 +131,10 @@ pub fn asset_beta(equity: f64, debt: f64, equity_beta: f64, tax_rate: f64) -> f6
     equity_beta / ( 1.0 + ((debt / equity) * ( 1.0 - tax_rate)))
 }
 
-// TMV
+// Time Value of Money
 
+
+// Time Value of Money - XNPV
 // assumes that the first outflow is at t=0
 pub fn xnpv(cashflows: Vec<(f64, &str)>, discount_rate: f64) -> f64 {
     let mut present_value = 0.0;
@@ -146,8 +152,9 @@ pub fn xnpv(cashflows: Vec<(f64, &str)>, discount_rate: f64) -> f64 {
     present_value
 }
 
+// Time Value of Money - XIRR
 pub fn xirr(cashflows: Vec<(f64, &str)>) -> f64 {
-    let mut rate = 0.10; // Initial guess of 5%
+    let mut rate = 0.10; // Initial guess of 10%
     let tolerance = 1e-6;
     let max_iterations = 10000;
 
@@ -168,8 +175,8 @@ pub fn xirr(cashflows: Vec<(f64, &str)>) -> f64 {
 }
 
 // Valuation Models
-// add tests for all of these
 
+// Valuation Models - Gordon Growth Model - One Phase
 pub fn ggm_p1(cashflow_0: f64, required_rate_of_return: f64, growth_rate: f64) -> Option<f64> {
     if required_rate_of_return <= growth_rate {
         // Return None if the required rate of return is not greater than the growth rate to avoid division by zero or negative denominator
@@ -180,7 +187,7 @@ pub fn ggm_p1(cashflow_0: f64, required_rate_of_return: f64, growth_rate: f64) -
     Some(value)
 }
 
-
+// Valuation Models - Gordon Growth Model - Two Phase
 pub fn ggm_p2(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64, growth_rate_2: f64, periods: u32) -> Option<f64> {
     if required_rate_of_return <= growth_rate_2 {
         // Return None if the required rate of return is not greater than the growth rate to avoid division by zero or negative denominator
@@ -203,25 +210,23 @@ pub fn ggm_p2(cashflow_0: f64, required_rate_of_return: f64, growth_rate_1: f64,
 
 
 
-// BSM functions
+// Black-Sholes-Merton
 
-// Function to calculate N(d1) and N(d2)
+// Black-Sholes-Merton - function to calculate N(d1) and N(d2)
 pub fn calc_nd(d: f64) -> f64 {
     let normal = Normal::new(0.0, 1.0).unwrap();
     normal.cdf(d)
 }
 
-// add complex that gives all the greeks too
-// also add binary tree model
-// Black-Scholes-Merton function
+// Black-Scholes-Merton - function for call and put values
 pub fn bsm(
     s: f64,       // Current stock price
     k: f64,       // Option strike price
     t: f64,       // Time to expiration in years
-    r: f64,       // Risk-free interest rate
-    sigma: f64,   // Volatility
+    r: f64,       // Annual Risk-free interest rate
+    sigma: f64,   // Annual Volatility
     q: f64
-) -> (f64, f64, f64, f64) { // Added fourth return value for put option
+) -> (f64, f64, f64, f64) { 
     let d1 = (s.ln() - k.ln() + (r - q + sigma.powi(2) / 2.0) * t) / (sigma * t.sqrt());
     let d2 = d1 - sigma * t.sqrt();
 
@@ -288,6 +293,7 @@ mod tests {
         assert!((calculated_irr - expected_irr).abs() < 0.001, "IRR calculation is incorrect");
     }
 
+    // Valuation Models
     #[test]
     fn test_ggm_p1_basic() {
         let result = ggm_p1(100.0, 0.1, 0.05);
@@ -350,7 +356,8 @@ mod tests {
         let expected_value = terminal_value / (1.0 + required_rate_of_return).powi(periods as i32);
         assert!((result.unwrap() - expected_value).abs() < 1.0);
     }
-
+    
+    // BSM
     #[test]
     fn test_black_scholes() {
         // Define test parameters
